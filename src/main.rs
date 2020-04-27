@@ -19,6 +19,16 @@ fn main() {
                         .help("defaults to the current directory"),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("one-file")
+                .about("calculate checksum of one file")
+                .arg(
+                    Arg::with_name("filename")
+                        .short("f")
+                        .takes_value(true)
+                        .help("the file to calculate"),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("list") {
@@ -28,6 +38,11 @@ fn main() {
         };
 
         list_directory(directory).unwrap();
+    }
+
+    if let Some(matches) = matches.subcommand_matches("one-file") {
+        let filename = matches.value_of("filename").unwrap();
+        println!("checking {}", filename);
     }
 }
 
