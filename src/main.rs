@@ -1,5 +1,5 @@
 use clap::{App, Arg, SubCommand};
-use std::env;
+//use std::env;
 use std::fs::{self};
 use std::io;
 use std::path::Path;
@@ -9,21 +9,25 @@ fn main() {
         .version("0.1")
         .about("Finds duplicate files.")
         .author("Aaron Lee <aaron@aaronosaur.us>")
-        .arg(
-            Arg::with_name("dir")
-                .short("d")
-                .takes_value(true)
-                .help("root directory to start scanning"),
+        .subcommand(
+            SubCommand::with_name("list")
+                .about("list files in this dir, for testing")
+                .arg(
+                    Arg::with_name("dir")
+                        .short("d")
+                        .takes_value(true)
+                        .help("defaults to the current directory"),
+                ),
         )
-        .subcommand(SubCommand::with_name("list").about("list files in this dir, for testing"))
         .get_matches();
 
-    let directory = matches.value_of("dir").unwrap_or("./");
+    if let Some(matches) = matches.subcommand_matches("list") {
+        let directory = match matches.value_of("dir") {
+            Some(dir) => Path::new(dir),
+            None => Path::new("./"),
+        };
 
-    let dir = Path::new(directory);
-
-    if matches.subcommand_matches("list").is_some() {
-        list_directory(dir).unwrap();
+        list_directory(directory).unwrap();
     }
 }
 
