@@ -1,6 +1,8 @@
 use clap::{App, Arg, SubCommand};
 use std::env;
+use std::fs::{self};
 use std::io;
+use std::path::Path;
 
 fn main() {
     let matches = App::new("myapp")
@@ -16,13 +18,20 @@ fn main() {
         .subcommand(SubCommand::with_name("list").about("list files in this dir, for testing"))
         .get_matches();
 
-    let directory = matches.value_of("dir");
+    let directory = matches.value_of("dir").unwrap_or("./");
+
+    let dir = Path::new(directory);
 
     if matches.subcommand_matches("list").is_some() {
-        list_directory(directory.unwrap_or("./").to_string()).unwrap();
+        list_directory(dir).unwrap();
     }
 }
 
-fn list_directory(path: String) -> Result<(), io::Error> {
+fn list_directory(dir: &Path) -> Result<(), io::Error> {
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            println!("{:#?}", entry);
+        }
+    }
     Ok(())
 }
