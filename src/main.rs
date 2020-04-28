@@ -2,7 +2,7 @@ use clap::{App, Arg, SubCommand};
 //use std::env;
 use std::fs::{self};
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let matches = App::new("myapp")
@@ -37,7 +37,7 @@ fn main() {
             None => Path::new("./"),
         };
 
-        list_directory(directory).unwrap();
+        list_directory(directory.to_path_buf()).unwrap();
     }
 
     if let Some(matches) = matches.subcommand_matches("one-file") {
@@ -46,11 +46,24 @@ fn main() {
     }
 }
 
-fn list_directory(dir: &Path) -> Result<(), io::Error> {
-    if dir.is_dir() {
-        for entry in fs::read_dir(dir)? {
-            println!("{:#?}", entry);
+fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                if let Ok(file_type) = entry.file_type() {
+                    if file_type.is_dir() {
+                        list_directory(entry.path())?;
+                    }
+                    println!(
+                        "{} => {:#?}",
+                        entry.path().as_path().display(),
+                        file_type.is_dir()
+                    );
+                }
+            }
+            //            let file = fs::File::open()?;
         }
+        return Ok(());
     }
     Ok(())
 }
