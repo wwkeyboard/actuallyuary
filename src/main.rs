@@ -50,15 +50,16 @@ fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries {
             if let Ok(entry) = entry {
-                if let Ok(file_type) = entry.file_type() {
-                    if file_type.is_dir() {
-                        list_directory(entry.path())?;
+                let name = entry.file_name().into_string().unwrap_or_default();
+                if !name.starts_with(".") {
+                    if let Ok(file_type) = entry.file_type() {
+                        if file_type.is_dir() {
+                            list_directory(entry.path())?;
+                        } else {
+                            //                        if entry.file_name().
+                            println!("{} => {:#?}", name, file_type.is_dir());
+                        }
                     }
-                    println!(
-                        "{} => {:#?}",
-                        entry.path().as_path().display(),
-                        file_type.is_dir()
-                    );
                 }
             }
             //            let file = fs::File::open()?;
