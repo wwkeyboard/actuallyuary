@@ -1,5 +1,6 @@
+use blake2::{Blake2b, Digest};
 use clap::{App, Arg, SubCommand};
-//use std::env;
+
 use std::fs::{self, DirEntry};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -58,17 +59,36 @@ fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
     Ok(())
 }
 
+// process_entry decides what to do with that entry,
+// -- skips hidden files/dirs
+// -- recurses if it's a directory
+// -- handles other files
 fn process_entry(entry: DirEntry) -> Result<(), io::Error> {
-    let name = entry.file_name().into_string().unwrap_or_default();
+    let name = entry.file_name().into_string().unwrap();
     if !name.starts_with(".") {
         if let Ok(file_type) = entry.file_type() {
+            // Skip symlinks for now, we don't want to get stuck in a loop.
+            // TODO: if we can tell if the symlink is to a file instead of a directory maybe allow that
+            if file_type.is_symlink() {
+                return Ok(());
+            }
+
             if file_type.is_dir() {
                 list_directory(entry.path())?;
             } else {
-                //                        if entry.file_name().
-                println!("{} => {:#?}", name, file_type.is_dir());
+                handle_file(entry.path())?;
             }
         }
     };
+    Ok(())
+}
+
+fn handle_file(path: PathBuf) -> Result<(), io::Error> {
+    println!("handling {}", path.to_str().unwrap());
+    let mut file = fs::File::open(&path)?;
+    let mut hasher = Blake2b::new();
+    let n = io::copy(&mut file, &mut hasher)?;
+    let hash = hasher.result();
+    println!("\t Bytes processed: {}, Hash: {:x}", n, hash);
     Ok(())
 }
