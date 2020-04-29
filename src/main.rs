@@ -1,6 +1,6 @@
 use clap::{App, Arg, SubCommand};
 //use std::env;
-use std::fs::{self};
+use std::fs::{self, DirEntry};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -50,21 +50,25 @@ fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries {
             if let Ok(entry) = entry {
-                let name = entry.file_name().into_string().unwrap_or_default();
-                if !name.starts_with(".") {
-                    if let Ok(file_type) = entry.file_type() {
-                        if file_type.is_dir() {
-                            list_directory(entry.path())?;
-                        } else {
-                            //                        if entry.file_name().
-                            println!("{} => {:#?}", name, file_type.is_dir());
-                        }
-                    }
-                }
+                process_entry(entry)?;
             }
-            //            let file = fs::File::open()?;
         }
         return Ok(());
     }
+    Ok(())
+}
+
+fn process_entry(entry: DirEntry) -> Result<(), io::Error> {
+    let name = entry.file_name().into_string().unwrap_or_default();
+    if !name.starts_with(".") {
+        if let Ok(file_type) = entry.file_type() {
+            if file_type.is_dir() {
+                list_directory(entry.path())?;
+            } else {
+                //                        if entry.file_name().
+                println!("{} => {:#?}", name, file_type.is_dir());
+            }
+        }
+    };
     Ok(())
 }
