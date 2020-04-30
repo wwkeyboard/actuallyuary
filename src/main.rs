@@ -1,5 +1,6 @@
 use blake2::{Blake2b, Digest};
 use clap::{App, Arg, SubCommand};
+use sled;
 
 use std::fs::{self, DirEntry};
 use std::io;
@@ -76,19 +77,21 @@ fn process_entry(entry: DirEntry) -> Result<(), io::Error> {
             if file_type.is_dir() {
                 list_directory(entry.path())?;
             } else {
-                handle_file(entry.path())?;
+                let checksum = checksum_for(entry.path())?;
+                //record(checksum)?;
             }
         }
     };
     Ok(())
 }
 
-fn handle_file(path: PathBuf) -> Result<(), io::Error> {
+fn checksum_for(path: PathBuf) -> Result<Vec<u8>, io::Error> {
     println!("handling {}", path.to_str().unwrap());
+
     let mut file = fs::File::open(&path)?;
     let mut hasher = Blake2b::new();
-    let n = io::copy(&mut file, &mut hasher)?;
-    let hash = hasher.result();
-    println!("\t Bytes processed: {}, Hash: {:x}", n, hash);
-    Ok(())
+
+    io::copy(&mut file, &mut hasher)?;
+
+    Ok(hasher.result().as_slice().to_owned())
 }
