@@ -19,6 +19,13 @@ fn main() {
                         .short("d")
                         .takes_value(true)
                         .help("defaults to the current directory"),
+                )
+                .arg(
+                    Arg::with_name("dbfile")
+                        .short("f")
+                        .takes_value(true)
+                        .default_value("actu.db")
+                        .help("filename of the database"),
                 ),
         )
         .subcommand(
