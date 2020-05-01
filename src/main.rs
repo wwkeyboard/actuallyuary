@@ -24,8 +24,8 @@ fn main() {
                     Arg::with_name("dbfile")
                         .short("f")
                         .takes_value(true)
-                        .default_value("actu.db")
-                        .help("filename of the database"),
+                        .default_value(".actu.db")
+                        .help("directory name of the database(if this is not hidden it could get included in future scans)"),
                 ),
         )
         .subcommand(
