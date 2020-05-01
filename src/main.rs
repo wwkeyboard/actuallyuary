@@ -2,6 +2,7 @@ use blake2::{Blake2b, Digest};
 use clap::{App, Arg, SubCommand};
 use sled;
 
+use std::error::Error;
 use std::fs::{self, DirEntry};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -51,6 +52,8 @@ fn main() {
         let db = sled::open(dbfilename).unwrap();
 
         list_directory(&db, directory.to_path_buf()).unwrap();
+
+        db.flush().unwrap();
     }
 
     if let Some(matches) = matches.subcommand_matches("one-file") {
@@ -92,7 +95,10 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<(), io::Error> {
                 let checksum = checksum_for(&filename)?;
 
                 let value = filename.to_string_lossy().to_string().into_bytes();
-                db.insert(checksum, value);
+                match db.insert(checksum, value) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Error: inserting {}, {}", filename.to_str().unwrap(), e),
+                }
             }
         }
     };
