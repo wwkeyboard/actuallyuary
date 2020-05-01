@@ -46,7 +46,11 @@ fn main() {
             None => Path::new("./"),
         };
 
-        list_directory(directory.to_path_buf()).unwrap();
+        // dbfile has a default
+        let dbfilename = matches.value_of("dbfile").unwrap();
+        let db = sled::open(dbfilename).unwrap();
+
+        list_directory(&db, directory.to_path_buf()).unwrap();
     }
 
     if let Some(matches) = matches.subcommand_matches("one-file") {
@@ -55,11 +59,11 @@ fn main() {
     }
 }
 
-fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
+fn list_directory(db: &sled::Db, dir: PathBuf) -> Result<(), io::Error> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries {
             if let Ok(entry) = entry {
-                process_entry(entry)?;
+                process_entry(&db, entry)?;
             }
         }
         return Ok(());
@@ -71,7 +75,7 @@ fn list_directory(dir: PathBuf) -> Result<(), io::Error> {
 // -- skips hidden files/dirs
 // -- recurses if it's a directory
 // -- handles other files
-fn process_entry(entry: DirEntry) -> Result<(), io::Error> {
+fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<(), io::Error> {
     let name = entry.file_name().into_string().unwrap();
     if !name.starts_with(".") {
         if let Ok(file_type) = entry.file_type() {
@@ -82,17 +86,20 @@ fn process_entry(entry: DirEntry) -> Result<(), io::Error> {
             }
 
             if file_type.is_dir() {
-                list_directory(entry.path())?;
+                list_directory(db, entry.path())?;
             } else {
-                let checksum = checksum_for(entry.path())?;
-                //record(checksum)?;
+                let filename = entry.path();
+                let checksum = checksum_for(&filename)?;
+
+                let value = filename.to_string_lossy().to_string().into_bytes();
+                db.insert(checksum, value);
             }
         }
     };
     Ok(())
 }
 
-fn checksum_for(path: PathBuf) -> Result<Vec<u8>, io::Error> {
+fn checksum_for(path: &PathBuf) -> Result<Vec<u8>, io::Error> {
     println!("handling {}", path.to_str().unwrap());
 
     let mut file = fs::File::open(&path)?;
