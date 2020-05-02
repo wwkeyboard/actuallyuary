@@ -4,6 +4,7 @@
 name = "actuallyuary"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bincode",
  "blake2",
  "clap",
@@ -18,6 +19,12 @@ checksum = "ee49baf6cb617b853aa8d93bf420db2383fab46d314482ca2803b40d5fde979b"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "anyhow"
+version = "1.0.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9a60d744a80c30fcb657dfe2c1b22bcb3e814c1a1e3674f32bf5820b570fbff"
 
 [[package]]
 name = "atty"
