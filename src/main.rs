@@ -94,7 +94,9 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<(), io::Error> {
             } else {
                 let filename = entry.path();
                 let checksum = checksum_for(&filename)?;
-                let value = bincode::serialize(&filename.to_string_lossy()).unwrap();
+
+                let payload = vec![filename.to_string_lossy()];
+                let value = bincode::serialize(&payload).unwrap();
 
                 match db.insert(checksum, value) {
                     Ok(_) => (),
