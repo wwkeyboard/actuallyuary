@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
+use bincode;
 use blake2::{Blake2b, Digest};
 use clap::{App, Arg, SubCommand};
-//use serde::Serialize;
-use bincode;
 use sled;
 
 use std::fs::{self, DirEntry};
@@ -63,7 +63,7 @@ fn main() {
     }
 }
 
-fn list_directory(db: &sled::Db, dir: PathBuf) -> Result<(), io::Error> {
+fn list_directory(db: &sled::Db, dir: PathBuf) -> Result<()> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries {
             if let Ok(entry) = entry {
@@ -79,7 +79,7 @@ fn list_directory(db: &sled::Db, dir: PathBuf) -> Result<(), io::Error> {
 // -- skips hidden files/dirs
 // -- recurses if it's a directory
 // -- handles other files
-fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<(), io::Error> {
+fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<()> {
     let name = entry.file_name().into_string().unwrap();
     if !name.starts_with(".") {
         if let Ok(file_type) = entry.file_type() {
@@ -95,13 +95,23 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<(), io::Error> {
                 let filename = entry.path();
                 let checksum = checksum_for(&filename)?;
 
-                let payload = vec![filename.to_string_lossy()];
+                let payload = match db
+                    .get(&checksum)
+                    .with_context(|| format!("inserting {}", filename.to_str().unwrap()))?
+                {
+                    Some(v) => {
+                        let mut existing: Vec<String> = bincode::deserialize(&v)?;
+                        //println("{:#?} matched {:#?}", filename.to_str(), existing);
+                        existing.push(filename.to_string_lossy().to_string());
+                        existing
+                    }
+                    None => vec![filename.to_string_lossy().to_string()],
+                };
+
                 let value = bincode::serialize(&payload).unwrap();
 
-                match db.insert(checksum, value) {
-                    Ok(_) => (),
-                    Err(e) => eprintln!("Error: inserting {}, {}", filename.to_str().unwrap(), e),
-                }
+                db.insert(checksum, value)
+                    .with_context(|| format!("inserting {}", filename.to_str().unwrap()))?;
             }
         }
     };
