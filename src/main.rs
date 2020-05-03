@@ -99,12 +99,15 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<()> {
                     .get(&checksum)
                     .with_context(|| format!("inserting {}", filename.to_str().unwrap()))?
                 {
+                    // This checksum is already in the DB
                     Some(v) => {
                         let mut existing: Vec<String> = bincode::deserialize(&v)?;
-                        //println("{:#?} matched {:#?}", filename.to_str(), existing);
+
+                        println!("{:#?} matched {:#?}", filename.to_str(), existing);
                         existing.push(filename.to_string_lossy().to_string());
                         existing
                     }
+                    // The checksum isn't in the DB
                     None => vec![filename.to_string_lossy().to_string()],
                 };
 
