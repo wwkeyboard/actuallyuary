@@ -92,29 +92,30 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<()> {
             if file_type.is_dir() {
                 list_directory(db, entry.path())?;
             } else {
-                let filename = entry.path();
-                let checksum = checksum_for(&filename)?;
+                let filename = entry.path().to_str().unwrap().to_string();
+                let checksum = checksum_for(&entry.path())?;
 
                 let payload = match db
                     .get(&checksum)
-                    .with_context(|| format!("inserting {}", filename.to_str().unwrap()))?
+                    .with_context(|| format!("inserting {}", filename))?
                 {
                     // This checksum is already in the DB
                     Some(v) => {
                         let mut existing: Vec<String> = bincode::deserialize(&v)?;
-
-                        println!("{:#?} matched {:#?}", filename.to_str(), existing);
-                        existing.push(filename.to_string_lossy().to_string());
+                        if !existing.contains(&filename) {
+                            println!("{:#?} matched {:#?}", filename, existing.join(" - "));
+                            existing.push(filename);
+                        }
                         existing
                     }
                     // The checksum isn't in the DB
-                    None => vec![filename.to_string_lossy().to_string()],
+                    None => vec![filename],
                 };
 
                 let value = bincode::serialize(&payload).unwrap();
 
                 db.insert(checksum, value)
-                    .with_context(|| format!("inserting {}", filename.to_str().unwrap()))?;
+                    .with_context(|| format!("inserting {}", entry.path().to_str().unwrap()))?;
             }
         }
     };
@@ -122,8 +123,6 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<()> {
 }
 
 fn checksum_for(path: &PathBuf) -> Result<Vec<u8>, io::Error> {
-    println!("handling {}", path.to_str().unwrap());
-
     let mut file = fs::File::open(&path)?;
     let mut hasher = Blake2b::new();
 
