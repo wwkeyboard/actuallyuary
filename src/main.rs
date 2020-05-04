@@ -102,8 +102,24 @@ fn process_entry(db: &sled::Db, entry: DirEntry) -> Result<()> {
                     // This checksum is already in the DB
                     Some(v) => {
                         let mut existing: Vec<String> = bincode::deserialize(&v)?;
-                        if !existing.contains(&filename) {
-                            println!("{:#?} matched {:#?}", filename, existing.join(" - "));
+
+                        // Only add the filename if it doesn't already exist in the DB
+                        if existing.contains(&filename) {
+                            if existing.len() > 1 {
+                                let dups: Vec<String> = existing
+                                    .iter()
+                                    .filter_map(|s| {
+                                        if **s != filename {
+                                            Some(s.to_owned())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect();
+                                println!("{} matched\n  {}", filename, dups.join("\n  "));
+                            }
+                        } else {
+                            println!("* {} matched\n  {}", filename, existing.join("\n  "));
                             existing.push(filename);
                         }
                         existing
