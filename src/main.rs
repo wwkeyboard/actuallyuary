@@ -42,24 +42,26 @@ fn main() {
         )
         .get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("list") {
-        let directory = match matches.value_of("dir") {
-            Some(dir) => Path::new(dir),
-            None => Path::new("./"),
-        };
+    match matches.subcommand() {
+        ("list", Some(matches)) => {
+            let directory = match matches.value_of("dir") {
+                Some(dir) => Path::new(dir),
+                None => Path::new("./"),
+            };
 
-        // dbfile has a default
-        let dbfilename = matches.value_of("dbfile").unwrap();
-        let db = sled::open(dbfilename).unwrap();
+            // dbfile has a default
+            let dbfilename = matches.value_of("dbfile").unwrap();
+            let db = sled::open(dbfilename).unwrap();
 
-        list_directory(&db, directory.to_path_buf()).unwrap();
+            list_directory(&db, directory.to_path_buf()).unwrap();
 
-        db.flush().unwrap();
-    }
-
-    if let Some(matches) = matches.subcommand_matches("one-file") {
-        let filename = matches.value_of("filename").unwrap();
-        println!("checking {}", filename);
+            db.flush().unwrap();
+        }
+        ("one-file", Some(matches)) => {
+            let filename = matches.value_of("filename").unwrap();
+            println!("checking {}", filename);
+        }
+        _ => println!("{}", matches.usage()),
     }
 }
 
